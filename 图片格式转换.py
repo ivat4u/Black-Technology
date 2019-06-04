@@ -1,14 +1,18 @@
 from tkinter import *
 import tkinter.filedialog
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageTk
 import os
 import tkinter.messagebox
 import tkinter.ttk
 sizex=0
 sizey=0
+quality=100
 path=''
+output_path=None
+output_file=None
 root = Tk()
-root.geometry('730x400')
+root.geometry()
+label_img=None
 # 设置窗口标题
 root.title('图片格式转换')
 def loadimg():
@@ -19,11 +23,17 @@ def loadimg():
     lb.config(text=path)
     if path != '':
         try:
-            img = Image.open(path).copy()
+            img = Image.open(path)
             sizex=img.size[0]
             sizey=img.size[1]
             x.set(sizex)
             y.set(sizey)
+            img=img.resize((180,180),Image.ANTIALIAS)
+            global img_origin
+            img_origin = ImageTk.PhotoImage(img)
+            global label_img
+            label_img.configure(image=img_origin)
+            label_img.pack()
         except OSError:
             tkinter.messagebox.showerror('错误', '图片格式错误，无法识别')
 
@@ -37,27 +47,27 @@ def convert(path,type='png',x=sizex,y=sizey,):
     def function(img):
         try:
             if (0 in cl_dict):
-                img = img.transpose(Image.FLIP_LEFT_RIGHT)
+                img = img.convert('RGB').transpose(Image.FLIP_LEFT_RIGHT)
             if (1 in cl_dict):
-                img = img.transpose(Image.FLIP_TOP_BOTTOM)
+                img = img.convert('RGB').transpose(Image.FLIP_TOP_BOTTOM)
             if (2 in cl_dict):
-                img = img.filter(ImageFilter.GaussianBlur)
+                img = img.convert('RGB').filter(ImageFilter.GaussianBlur)
             if (3 in cl_dict):
-                img = img.filter(ImageFilter.BLUR)
+                img = img.convert('RGB').filter(ImageFilter.BLUR)
             if (4 in cl_dict):
-                img = img.filter((ImageFilter.EDGE_ENHANCE))
+                img = img.convert('RGB').filter((ImageFilter.EDGE_ENHANCE))
             if (5 in cl_dict):
-                img = img.filter(ImageFilter.FIND_EDGES)
+                img = img.convert('RGB').filter(ImageFilter.FIND_EDGES)
             if (6 in cl_dict):
-                img = img.filter(ImageFilter.EMBOSS)
+                img = img.convert('RGB').filter(ImageFilter.EMBOSS)
             if (7 in cl_dict):
-                img = img.filter(ImageFilter.CONTOUR)
+                img = img.convert('RGB').filter(ImageFilter.CONTOUR)
             if (8 in cl_dict):
-                img = img.filter(ImageFilter.SHARPEN)
+                img = img.convert('RGB').filter(ImageFilter.SHARPEN)
             if (9 in cl_dict):
-                img = img.filter(ImageFilter.SMOOTH)
+                img = img.convert('RGB').filter(ImageFilter.SMOOTH)
             if (10 in cl_dict):
-                img = img.filter(ImageFilter.DETAIL)
+                img = img.convert('RGB').filter(ImageFilter.DETAIL)
         except ValueError as e:
             tkinter.messagebox.showerror('错误',repr(e))
         return img
@@ -66,7 +76,14 @@ def convert(path,type='png',x=sizex,y=sizey,):
             img = Image.open(path)
             img=function(img)
             img = img.resize((x, y), Image.ANTIALIAS)
-            img.save(file_path + '\\' + front + '.' + type)
+            img_n = img.resize((180, 180), Image.ANTIALIAS)
+            global img_new
+            img_new = ImageTk.PhotoImage(img_n)
+            label_img2.configure(image=img_new)
+            label_img2.pack()
+            global  output_path,output_file
+            output_path=file_path + '\\' + front + '.' + type
+            output_file=img
 
         except OSError:
             lb.config(text="您没有选择任何文件")
@@ -74,8 +91,10 @@ def convert(path,type='png',x=sizex,y=sizey,):
     else:
         tkinter.messagebox.showerror('错误', '未发现路径')
         #im.transpose(Image.FLIP_LEFT_RIGHT)水平镜像 or im.transpose(Image.FLIP_TOP_BOTTOM)垂直镜像
-
-
+#如何获得回调函数的对象呢
+def output():
+    global output_file,output_path
+    output_file.save(output_path,quality=quality)
 
 v=IntVar()
 #列表中存储的是元素是元组
@@ -88,10 +107,13 @@ def callRB():
             type=types[i][0]
 lb = Label(root,text = '选取格式后会在原路径生成对应格式')
 lb.pack()
-btn = Button(root,text="转换图片",command=lambda :convert(path,type,x.get(),y.get()))
+btn = Button(root,text="转换图片",command=lambda:convert(path,type,x.get(),y.get()))
 btn2 = Button(root,text="选择图片",command=loadimg)
+btn3 = Button(root,text="确定",command=output)
 btn2.pack()
+
 btn.pack()
+btn3.pack()
 fm1 = Frame(root)
 #for循环创建单选框
 for lan,num in types:
@@ -118,29 +140,27 @@ fm3=Frame(root)
 fm3.pack(side=TOP, fill=BOTH, expand=YES)
 cl=[IntVar() ,IntVar() ,IntVar() ,IntVar() ,IntVar() ,IntVar() ,IntVar() ,IntVar() ,IntVar() ,IntVar() ,IntVar() ]
 cl_dict=[]
-'''
-CheckVar1 = IntVar()
-CheckVar2 = IntVar()
-CheckVar3 = IntVar()
-CheckVar4= IntVar()
-CheckVar5 = IntVar()
-CheckVar6 = IntVar()
-CheckVar7 = IntVar()
-CheckVar8 = IntVar()
-CheckVar9 = IntVar()
-CheckVar10 = IntVar()
-CheckVar11 = IntVar()  '''
+
 def call_checkbutton():
+    cl_dict.clear()
     for i in range(11):
         if(cl[i].get()==1):
             cl_dict.append(i)
-        else:
-            try:
-                cl_dict.remove(i)
-            except:
-                continue
+qualitys=[('max',0),('high',1),('mid',2),('low',3)]
+q=IntVar()
+def callQU():
+    for i in range(4):
+        if (q.get()==i):
+            if(type!='jpg' and type!='jpeg'):
+                tkinter.messagebox.showinfo('提示','压缩图片仅对输出jpg/jpeg有效')
+            global quality
+            quality=100-25*qualitys[i][1]
+fm_definition=Frame(root)
+fm_definition.pack(side=TOP,expand=YES)
+for lan,num in qualitys:
+    Radiobutton(fm_definition, text=lan, value=num, command=callQU, variable=q).pack(anchor=W,side='left')
 
-            
+
 l=[]
 l.append(tkinter.Checkbutton(fm3,text="水平镜像",command=call_checkbutton,variable=cl[0],onvalue = 1, offvalue = 0))
 l.append(tkinter.Checkbutton(fm3,text="垂直镜像",command=call_checkbutton,variable=cl[1],onvalue = 1, offvalue = 0))
@@ -158,23 +178,13 @@ for bt in l:
     bt.pack(side='left',expand=True)
 
 
-# 高斯模糊
-# im.filter(ImageFilter.GaussianBlur)
-# 普通模糊
-# im.filter(ImageFilter.BLUR)
-# 边缘增强
-# im.filter(ImageFilter.EDGE_ENHANCE)
-# 找到边缘
-# im.filter(ImageFilter.FIND_EDGES)
-# 浮雕
-# im.filter(ImageFilter.EMBOSS)
-# 轮廓
-# im.filter(ImageFilter.CONTOUR)
-# 锐化
-# im.filter(ImageFilter.SHARPEN)
-# 平滑
-# im.filter(ImageFilter.SMOOTH)
-# 细节
-# im.filter(ImageFilter.DETAIL)
+fm_orgin=Frame(root)
+fm_new=Frame(root)
+fm_orgin.pack(side=LEFT, expand=YES)
+fm_new.pack(side=LEFT, fill=BOTH, expand=YES)
+label_img = tkinter.Label(fm_orgin, text='原始图片')
+label_img.pack()
+label_img2 = tkinter.Label(fm_new, text='获得图片')
+label_img2.pack()
 root.mainloop()
 
